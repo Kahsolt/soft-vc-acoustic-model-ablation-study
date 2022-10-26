@@ -1,0 +1,12 @@
+# meta
+.vscode
+__pycache__/
+*.py[cod]
+
+# wav & processed files
+data/
+# model chpt & logs
+log/
+
+# demo materials
+model_zoo.pptx
