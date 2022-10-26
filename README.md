@@ -6,8 +6,34 @@
 
 基础代码由 [soft-vc-acoustic-models](https://github.com/Kahsolt/soft-vc-acoustic-models) 删减修改而来，进一步删去了并行训练框架，因为我只有一张卡谔谔 :( 
 
+Acoustic Model Zoo:
 
-### Ablation Study Results
+![Acoustic Model Zoo](img/model_zoo.png)
+
+Results collected from demo experiments in `run_experiments.cmd`
+
+| Experiment Setting | Best ckpt Steps | Final Loss (train / valid) | Note | Listening Test |
+| :-: | :-: | :-: | :-: | :-: |
+| baseline_databaker-full     | 23000 | 0.31 / 0.33745 | 数据集太小，模型太大 | 个别声调错误 |
+| baseline_databaker-8h       | 23000 | 0.30 / 0.35051 | 数据集太小，模型太大 | 跨语种时个别音素缺失 |
+| baseline_databaker-4h       | 15000 | 0.27 / 0.38186 | 数据集太小，模型太大 | 个别音素缺失导致噪声，声调错误 |
+| baseline_databaker-2h       | 5000  | 0.23 / 0.41324 | 快速过拟合，**数据量需求下界** | 个别音素缺失，声调错误 |
+| baseline_databaker-1h       | 4000  | 0.18 / 0.43975 | 快速过拟合 | 音素缺失导致近音替换 |
+| baseline_databaker-30min    | 3000  | 0.12 / 0.50549 | 快速过拟合 | 音素缺失，声调错误，声音撕裂 |
+| baseline_databaker-10min    | 1000  | 0.06 / 0.58868 | 快速过拟合 | 音素缺失导致白噪音替换，撕裂 |
+| no_dropout_databaker-full   | 35000 | 0.17 / 0.18310 | ？我不理解，loss最低却仍未过拟合 | 声音更单声道，泛音更少(闷)；更少的汉语口音，但带有源音色模式的成分！ |
+| no_IN_databaker-full        | 23000 | 0.31 / 0.33172 | HuBERT本身就有IN的意味，再加IN只能降一点点loss | 汉语口音，音调错误 |
+| single_LSTM_databaker-full  | 28000 | 0.34 / 0.42488 | 单层RNN似乎总是非线性性不太够，验证集loss不稳 | 但听起来还彳亍🤔？ |
+| only_Encoder_databaker-full | 36000 | 0.54 / 0.52248 | 没RNN的话loss降不下来，韵律迁移要靠RNN！ | 微小的撕裂音（什么核嗓） |
+| only_Decoder_databaker-full | 26000 | 0.31 / 0.33341 | CNN对于降loss这件事看来用处不大 | 严重的音调错误，听起来像英语🤔？ |
+| tiny_databaker-full         | 36000 | 0.18 / 0.18912 | **匹配数据集规模的合理设置** | 听觉效果最好！😀 |
+| tiny_half_databaker-full    | 35000 | 0.19 / 0.20307 | 宽度太小非线性性可能不够 | 微小的撕裂音和间歇的高频噪声 |
+
+ℹ For **Listening Test**, see everything in `index.html`  
+ℹ my pretrained checkponts could be downloaded from here: [https://pan.quark.cn/s/48dcffa2cddf](https://pan.quark.cn/s/48dcffa2cddf)  
+
+
+### Experimental Settings
 
 We mainly use the standard datasets [DataBaker](https://www.data-baker.com/data/index/TNtts/) (Mandarin) for the following experiments, 
 you could test everything alike on [LJSpeech](https://keithito.com/LJ-Speech-Dataset/) (English) by yourself once you have more powerful GPUs :) 
@@ -15,9 +41,7 @@ you could test everything alike on [LJSpeech](https://keithito.com/LJ-Speech-Dat
 | 语料 | 数据集(dataset) | 说明 | 数据集时长 |
 | :-: | :-: | :-: | :-: |
 | DataBaker(BZNSYP) | databaker | 汉语普通话女性成人 | 10h |
-| LJSpeech-1.1      | databaker | 英语女性成人      | 24h |
-
-You can listen to the audio samples in `index.html`, checkponts could also be downloaded from here [https://pan.quark.cn/s/48dcffa2cddf](https://pan.quark.cn/s/48dcffa2cddf)
+| LJSpeech-1.1      | ljspeech  | 英语女性成人      | 24h |
 
 #### Ablation on size of training data
 
@@ -48,33 +72,10 @@ We tested these modified version together with the original CRNN-based acoustic 
 | only_Encoder |  4,524,544 | only CNN (- IN), no RNN; loss does **NOT** decrease if apply `IN` |
 | only_Decoder | 14,896,128 | only (Conv1dT +) RNN , no CNN; `Conv1dT` is added to upsample for length match |
 | tiny         |  7,151,104 | tiny version of baseline architecture, collapses all replicated layers/blocks |
-| tiny_half    |  2,051,968 | tiny, but model width halfed to `384` |
-
-![Acoustic Model Zoo](img/model_zoo.png)
-
-#### Statistic Results
-
-Collected from demo experiments in `run_experiments.cmd`
-
-| Experiment Setting | Best ckpt Steps | Final Loss (train / valid) | Note | Listening Test |
-| :-: | :-: | :-: | :-: | :-: |
-| baseline_databaker-full     | 23000 | 0.31 / 0.33745 | 数据集太小，模型太大 | 个别声调错误 |
-| baseline_databaker-8h       | 23000 | 0.30 / 0.35051 | 数据集太小，模型太大 | 跨语种时个别音素缺失 |
-| baseline_databaker-4h       | 15000 | 0.27 / 0.38186 | 数据集太小，模型太大 | 个别音素缺失导致噪声，声调错误 |
-| baseline_databaker-2h       | 5000  | 0.23 / 0.41324 | 快速过拟合，**数据量需求下界** | 个别音素缺失，声调错误 |
-| baseline_databaker-1h       | 4000  | 0.18 / 0.43975 | 快速过拟合 | 音素缺失导致近音替换 |
-| baseline_databaker-30min    | 3000  | 0.12 / 0.50549 | 快速过拟合 | 音素缺失，声调错误，声音撕裂 |
-| baseline_databaker-10min    | 1000  | 0.06 / 0.58868 | 快速过拟合 | 音素缺失导致白噪音替换，撕裂 |
-| no_dropout_databaker-full   | 35000 | 0.17 / 0.18310 | ？我不理解，loss最低却仍未过拟合 | 声音更单声道，泛音更少(闷)；更少的汉语口音，但带有源音色模式的成分！ |
-| no_IN_databaker-full        | 23000 | 0.31 / 0.33172 | HuBERT本身就有IN的意味，再加IN只能降一点点loss | 汉语口音，音调错误 |
-| single_LSTM_databaker-full  | 28000 | 0.34 / 0.42488 | 单层RNN似乎总是非线性性不太够，验证集loss不稳 | 听起来还可以 |
-| only_Encoder_databaker-full | 36000 | 0.54 / 0.52248 | 没RNN的话loss降不下来，韵律迁移要靠RNN！ | 微小的撕裂音（什么核嗓） |
-| only_Decoder_databaker-full | 26000 | 0.31 / 0.33341 | CNN对于降loss这件事看来用处不大 | 严重的音调错误，听起来像英语🤔？ |
-| tiny_databaker-full         | 36000 | 0.18 / 0.18912 | **匹配数据集规模的合理设置** | 听觉效果最好 |
-| tiny_half_databaker-full    | 35000 | 0.19 / 0.20307 | 宽度太小非线性性可能不够 | 微小的撕裂音和间歇的高频噪声 |
+| tiny_half    |  2,051,968 | tiny, but model width halfed to `256` for encoder and `384` for decoder |
 
 
-### Quick Start
+### Quick Start for Reproduction
 
 #### preprocess
 
